@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "tailwindcss-animated";
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courgette&display=swap');
+
+@theme {
+    --color-primary: #823303;
+     --font-serif:"Cormorant Garamond", serif;
+     --font-cursive:"Courgette", cursive;
+}
+
+
