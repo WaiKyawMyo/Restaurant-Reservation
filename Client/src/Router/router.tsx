@@ -10,6 +10,8 @@ import ChangePw from "../components/Login/ChangePw";
 import Home from "../Pages/Home";
 import Reservation from "../Pages/Reservation";
 import Protuct from "../components/Protuct";
+import MyRestervation from "../Pages/MyRestervation";
+import Success from "../components/Booking/Success";
 
 
 const router = createBrowserRouter([
@@ -20,14 +22,18 @@ const router = createBrowserRouter([
             {
                 path:'/',
                 element:<Home/>
-
             } ,
             {
                 path:'/reservation',
                 element:<Protuct><Reservation/></Protuct> 
             },
             {
-               
+               path:'/my-reservaton',
+               element:<MyRestervation/>
+            },
+            {
+               path:'/success-reserved',
+               element:<Success/>
             }
         ]   
     },

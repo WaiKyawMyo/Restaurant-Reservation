@@ -9,7 +9,8 @@ export interface AuthRequest extends Request{
         username:string,
         email:string,
         _id:string| Types.ObjectId,
-        role:string
+        role:string,
+        phone_no:string
     }
     
 }
@@ -17,7 +18,8 @@ interface User{
      username:string,
         email:string,
         _id:string| Types.ObjectId,
-        role:string
+        role:string,
+        phone_no:string
 }
 
 const authMiddleware = asyncHandler(async(req:AuthRequest,res:Response,next:NextFunction)=>{

@@ -20,6 +20,8 @@ type UserType = {
   username: string;
   email: string;
   role: string;
+ phone_no:string
+
   // add any other fields you expect from the API!
 };
  function  Profile ({setProfilebtn}:Props) {
@@ -37,31 +39,44 @@ type UserType = {
     const Submit:SubmitHandler<Loginfrom> = async(data)=> {
     try {
         const res =await updatepro(data).unwrap()
+        setUser(prev => prev? {...prev,email:res.email,username:res.username,role:res.role} : prev)
         dispath(setUserInfo(res))
         toast.success('Update Success',{
             onClose:()=>{
                  setProfilebtn(true)
                  setUpdate(false)
-            }
+            },
+    
         })
+        
     } catch (err:any) {
         toast.error(err?.data?.message || err.error)
     }         
-                    
+       
+   
     }            
     const backDetail =async()=>{
         setUpdate(false)
         setProfilebtn(true)
     }
+     const cancleBTN=()=>{
+        document.body.style.overflow=""
+         setProfilebtn((prev:boolean)=>!prev)
+    }
   
 useEffect(() => {
+     
     const fetchProfile = async () => {
         try {
+            window.scrollTo({ top: 0})
+        document.body.style.overflow='hidden' 
+       
             const res = await profile({}).unwrap();
             setUser({
                 username:res.username,
                 email:res.email,
-                role:res.role
+                role:res.role,
+                phone_no:res.phone_no
             })
             
             // handle response here
@@ -71,7 +86,7 @@ useEffect(() => {
         }
     };
     fetchProfile();
-}, [profile]);
+}, [profile,update]);
   
   return (
     <>
@@ -86,7 +101,7 @@ useEffect(() => {
             This is some information about the user.
         </p>
         </div>
-        <div onClick={()=>setProfilebtn((prev:boolean)=>!prev)}>
+        <div onClick={cancleBTN}>
             <FontAwesomeIcon icon={faXmark} className='cursor-pointer'/>
         </div>
     </div>
@@ -116,6 +131,14 @@ useEffect(() => {
                     {user?.role ?? "Loading..."}
                 </dd>
             </div>
+            <div className="py-3 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">
+                    User Phone_No
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {user?.phone_no ?? "Loading..."}
+                </dd>
+            </div>
             <div className="py-3 sm:mx-2 lg:ml-4 w-full">
                <button onClick={()=>setUpdate(true)} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" >Edit Profile</button>
             </div>
@@ -137,8 +160,14 @@ useEffect(() => {
             </div>
             <div className="mb-5">
                 <label  className="block mb-2 text-sm font-medium text-gray-900 ">Your email</label>
-                <input  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 " placeholder="name@flowbite.com"/>
+                <input {...register('email')} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 " placeholder="name@flowbite.com"/>
                     {errors.email? <p className='text-red-400'>{errors.email?.message}</p>: <></>}
+
+            </div>
+             <div className="mb-5">
+                <label  className="block mb-2 text-sm font-medium text-gray-900 ">User Phone_No</label>
+                <input {...register('phone_no')} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 " placeholder="091234567"/>
+                    {errors.phone_no? <p className='text-red-400'>{errors.phone_no.message}</p>: <></>}
 
             </div>
             

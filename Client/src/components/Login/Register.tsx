@@ -82,6 +82,13 @@ function Register() {
                             errors.email ? <span className='text-red-400 font-bold'>{errors.email?.message}</span> : <span className='h-4'></span>
                         }
                     </div>
+                     <div>
+                        <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your Phone No</label>
+                        <input type="text" {...register('phone_no')}  className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="091234567" />
+                        {
+                            errors.phone_no ? <span className='text-red-400 font-bold'>{errors.phone_no?.message}</span> : <span className='h-4'></span>
+                        }
+                    </div>
                     <div>
                         <label  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
                         <input type="password" {...register("password")}  placeholder="••••••••" className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />

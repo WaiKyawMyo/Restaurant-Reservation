@@ -4,7 +4,7 @@ import { Link } from "react-router"
 function Reservation() {
   return (
     <div className="text-center mx-auto h-[30vh]  lg:w-[500px]  lg:h-[80vh] ">
-        <div className="pt-8 sm:pt-25 lg:pt-45">
+        <div className="pt-5 sm:pt-25 lg:pt-45">
             <p className="mb-4 ">
             Indulge in our authentic Mala Xiang Guo without the wait. Whether it's a romantic dinner, family gathering, or spicy food adventure with friends, we'll have the perfect table ready for you.
         </p >

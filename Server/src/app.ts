@@ -6,6 +6,7 @@ import UserRouter from "./router/user"
 import cookieparser from "cookie-parser"
 import OTProute from "./router/OTP"
 import errorHandler from "./middleware/errorHandler"
+import reservation from './router/reservation'
 
 dotenv.config({
     path: ".env"
@@ -23,6 +24,7 @@ app.use(cookieparser())
 
 app.use('/api',UserRouter)
 app.use('/api',OTProute)
+app.use('/api',reservation)
 
 app.use(errorHandler)
 

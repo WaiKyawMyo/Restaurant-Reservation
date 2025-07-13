@@ -17,7 +17,8 @@ function Header() {
   const [profilebtn,setProfilebtn]= useState(false)
   const [changePW,SetChangePW]=useState(false)
   const userInfo = useSelector((state:RootState)=>state.auth.userInfo)
-  function displayName(fullName:string) {
+  function displayName(fullName) {
+  if (!fullName || typeof fullName !== 'string') return '';
   const names = fullName.trim().split(' ');
   if (names.length > 1) {
     return `${names[0]} ${names[names.length - 1][0]}.`;
@@ -31,6 +32,7 @@ function Header() {
     dispath(clearUserInfo())
     toast.success('Successfully logged out.')
   }
+ 
 
   return (
     <header className="flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-white text-sm ">
@@ -41,7 +43,7 @@ function Header() {
         </Link>
         <div className="sm:order-3 flex items-center gap-x-2">
           {/* Hamburger for mobile */}
-          <button
+          <button 
             type="button"
             className="sm:hidden size-9 flex justify-center items-center gap-x-2 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:bg-gray-50"
             aria-expanded={mobileMenuOpen ? "true" : "false"}
@@ -51,7 +53,7 @@ function Header() {
           >
             {/* Hamburger Icon */}
             <svg
-              className={!mobileMenuOpen ? "block size-4" : "hidden"}
+              className={!mobileMenuOpen ? "block size-4" : `hidden `}
               xmlns="http://www.w3.org/2000/svg"
               width="24"
               height="24"
@@ -68,7 +70,7 @@ function Header() {
             </svg>
             {/* Close Icon */}
             <svg
-              className={mobileMenuOpen ? "block size-4" : "hidden"}
+              className={mobileMenuOpen ? `block size-4` : `hidden `}
               xmlns="http://www.w3.org/2000/svg"
               width="24"
               height="24"
@@ -120,7 +122,7 @@ function Header() {
             ${mobileMenuOpen ? "block" : "hidden"}
           `}
         >
-          <div className="flex flex-col gap-5 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5">
+          <div className={`flex flex-col gap-5 p-2 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5  `}>
             <NavLink
               className={({ isActive }) =>
                 "font-medium " +
@@ -154,9 +156,9 @@ function Header() {
                 "font-medium " +
                 (isActive ? "text-[#D32F2F] font-bold text-xl" : "font-bold text-xl text-gray-600 hover:text-gray-400")
               }
-              to="/blog"
+              to="/my-reservaton"
             >
-              Blog
+              My Reservation
             </NavLink>
           </div>
         </div>

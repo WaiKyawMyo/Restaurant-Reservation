@@ -7,7 +7,7 @@ import { AuthRequest } from "../middleware/authMiddleware";
 
 export const userRegister = asyncHandler(async(req:Request ,res:Response)=>{
     
-        const {username,email,password}= req.body
+        const {username,email,password,phone_no}= req.body
         const existinguser = await User.findOne({email})
 
         if(existinguser){
@@ -18,6 +18,7 @@ export const userRegister = asyncHandler(async(req:Request ,res:Response)=>{
             username,
             email,
             password,
+            phone_no,
             role:"user"
         })
         if(!user){
@@ -28,6 +29,7 @@ export const userRegister = asyncHandler(async(req:Request ,res:Response)=>{
                 _id:user._id,
                 username: user.username,
                 eamil:user.email,
+                phone_no:user.phone_no,
                 role:user.role,
                 message:"Success! Your account has been created."
          })
@@ -44,6 +46,7 @@ export const userLogin =asyncHandler(async(req:Request ,res:Response)=>{
         username:existing.username,
         email:existing.email,
         role:existing.role,
+        phone_no:existing.phone_no,
         message:"Login successful!"
        })
     }else{
@@ -65,7 +68,8 @@ export const getUserProfile =asyncHandler(async(req:AuthRequest,res:Response)=>{
         _id:req.user?._id,
         username:req.user?.username,
         email:req.user?.email,
-        role:req.user?.role
+        role:req.user?.role,
+        phone_no:req.user?.phone_no
     }
     res.status(200).json(user)
 })
@@ -78,12 +82,14 @@ export const userProfileUpdate = asyncHandler(async(req:AuthRequest,res:Response
   }
   user.username= req.body.username || user.username
   user.email= req.body.email || user.email
+  user.phone_no= req.body.phone_no || user.phone_no
 
   const updateUser = await user.save()
   const selectUser = {
     _id:updateUser._id,
     username: updateUser.username,
     email:updateUser.email,
+    
     role:updateUser.role
   }
   res.status(200).json(selectUser)

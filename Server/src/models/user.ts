@@ -6,6 +6,7 @@ interface IUser extends Document{
     email:string,
     password:string,
     role:string,
+    phone_no:string
     matchPassword(password:string) : Promise<boolean>
 }
 const userSchema = new Schema <IUser>({
@@ -19,6 +20,10 @@ const userSchema = new Schema <IUser>({
         uniqued:true
     },
     password:{
+        type:String,
+        required:true
+    },
+    phone_no:{
         type:String,
         required:true
     },
