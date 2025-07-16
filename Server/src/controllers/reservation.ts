@@ -108,3 +108,9 @@ export const myReservationGet =asyncHandler(async(req:AuthRequest,res:Response)=
   }
   
 })
+
+export const removeReservation = asyncHandler(async(req:Request,res:Response)=>{
+  const {_id}=req.body
+   await Reservation.findByIdAndDelete({_id})
+  res.status(200).json({message:"Success Deleted"})
+})

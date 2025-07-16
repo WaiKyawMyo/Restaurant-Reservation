@@ -112,8 +112,15 @@ export const userApiSlite =apiSlite.injectEndpoints({
             method:"get",
             credentials:'include'
         })
+       }),
+       DeleteReservation:build.mutation({
+            query:(data)=>({
+                url:'delete-reservation',
+                method:"delete",
+                body:data
+            })
        })
       
     })
 })
-export  const{useCreateReservationMutation,useGetMyReservationMutation,useCreaetReservationMutation,useLoginMutation,useLogoutMutation,useUserRegisterMutation,useRequestOTPMutation,useVarifyOTPMutation,useChangePWwithOTPMutation,useProfileMutation,useUpdteProMutation}= userApiSlite
+export  const{useCreateReservationMutation,useDeleteReservationMutation ,useGetMyReservationMutation,useCreaetReservationMutation,useLoginMutation,useLogoutMutation,useUserRegisterMutation,useRequestOTPMutation,useVarifyOTPMutation,useChangePWwithOTPMutation,useProfileMutation,useUpdteProMutation}= userApiSlite

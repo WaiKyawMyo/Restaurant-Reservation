@@ -21,5 +21,5 @@ const reservationSchema = new Schema({
         required: true
     },
     
-})
+}) 
 export const Reservation = mongoose.model("Reservation",reservationSchema)
