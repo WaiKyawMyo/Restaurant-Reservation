@@ -12,6 +12,7 @@ import Reservation from "../Pages/Reservation";
 import Protuct from "../components/Protuct";
 import MyRestervation from "../Pages/MyRestervation";
 import Success from "../components/Booking/Success";
+import PreOrder from "../Pages/PreOrder";
 
 
 const router = createBrowserRouter([
@@ -34,7 +35,11 @@ const router = createBrowserRouter([
             {
                path:'/success-reserved',
                element:<Success/>
-            }
+            },
+             {
+               path:'/pro-order',
+               element:<PreOrder/>
+            },
         ]   
     },
     {

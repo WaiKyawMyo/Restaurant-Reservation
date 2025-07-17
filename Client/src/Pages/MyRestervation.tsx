@@ -3,6 +3,8 @@ import { useDeleteReservationMutation, useGetMyReservationMutation } from "../Sl
 import { toast } from "react-toastify";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faAngleLeft, faAngleRight } from "@fortawesome/free-solid-svg-icons";
 function MyRestervation() {
   const [getAll] = useGetMyReservationMutation();
   const [reservation, setReservation] = useState([]);
@@ -13,7 +15,30 @@ function MyRestervation() {
   const [popup,setpopup]=useState(false)
   const [ReservationDe]=useDeleteReservationMutation()
   const [id,setid]=useState('')
+  const rowPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPage = Math.ceil(reservation.length / rowPerPage);
 
+
+
+  const handleClick = (page: number) => {
+    setCurrentPage(page);
+  };
+  const pageData = reservation.slice(
+    (currentPage - 1) * rowPerPage,
+    currentPage * rowPerPage
+  );
+
+  const handleBack = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+  const handleNext = () => {
+    if (currentPage < totalPage) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
   const navigate = useNavigate()
   const confirmdelete = async(id:string)=>{
     setid(id)
@@ -107,7 +132,7 @@ function MyRestervation() {
             </thead>
             <tbody>
             
-              {!loading && [...reservation]
+              {!loading && pageData
                 .sort(
                   (a, b) =>
                     new Date(b.start_time).getTime() -
@@ -214,7 +239,9 @@ function MyRestervation() {
                   );
                 })} 
             </tbody>
+            
           </table>
+          
           {(noData && !loading ) && (
             <div className="">
                <p className="text-center text-red-500 my-2">No reservations yet.</p> 
@@ -237,7 +264,43 @@ function MyRestervation() {
 
            
         </div>
+        {!pageData&&  <div className="mx-auto">
+            <div className="mt-4 flex justify-center space-x-2 ">
+            <button
+              onClick={handleBack}
+              disabled={currentPage == 1}
+              className={`py-1 px-2.5 bg-blue-600 rounded ${
+                currentPage == 1 ? "bg-gray-500" : ""
+              }`}
+            >
+              <FontAwesomeIcon icon={faAngleLeft} />
+            </button>
+            {Array.from({ length: totalPage }, (_, idx) => (
+              <button
+                key={idx + 1}
+                className={`px-3 py-1 rounded ${
+                  currentPage === idx + 1
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+                onClick={() => handleClick(idx + 1)}
+              >
+                {idx + 1}
+              </button>
+            ))}
+            <button
+              onClick={handleNext}
+              disabled={currentPage == totalPage}
+              className={`py-1 px-2.5 bg-blue-600 rounded ${
+                currentPage == totalPage ? "bg-gray-500" : ""
+              }`}
+            >
+              <FontAwesomeIcon icon={faAngleRight} />
+            </button>
+          </div>
+          </div>}
       </div>
+      
 
       {popup && createPortal(
   <div className="fixed inset-0 backdrop-blur-xs  backdrop:opacity-55 flex items-center justify-center z-50">
