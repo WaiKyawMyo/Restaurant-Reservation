@@ -1,331 +1,420 @@
-import { useEffect, useState } from "react";
-import { z } from "zod";
-import { reservationSchema } from "../Schema/Reservation";
-import type { RootState } from "../store";
-import { useSelector } from "react-redux";
-import { useGetAllTableQuery } from "../Slice/Api";
-import { useCreateReservationMutation } from "../Slice/API/userApi";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type SubmitHandler } from "react-hook-form";
-import { toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarDays, faChair, faClock,  faPerson } from "@fortawesome/free-solid-svg-icons";
-import { useNavigate } from "react-router";
+import { useCreateOrderMutation, useGetAllMenuMutation } from "../Slice/API/userApi";
+import { useEffect, useState, useRef } from "react";
+import { faFire, faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { useNavigate, useParams } from "react-router";
+import { toast } from 'react-toastify';
 
-// --- Time slots definition
-const slots = [
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-  "22:00",
-];
+// --- TypeScript Interfaces (keep these for clarity) ---
+interface MenuItem {
+  _id: string;
+  name: string;
+  type: string;
+  price: number;
+  is_available: boolean;
+  image?: string;
+  cloudinary_id?: string;
+}
 
-type FormType = z.infer<typeof reservationSchema>;
+interface SetMenuItem {
+  _id: string; // Assuming this is the ID of the menu item within the set
+  menu?: MenuItem; // Optional, as it might not always be populated
+  quantity: number;
+}
 
-function Reservation() {
-  const userInfo = useSelector((state: RootState) => state.auth.userInfo);
+interface Set {
+  _id: string;
+  name: string;
+  price: number;
+  image?: string;
+  menu_items?: SetMenuItem[]; // Assuming this is an array of included items
+  is_available: boolean;
+}
 
-  const user_id = userInfo?._id;
-  const [step2, setStep2] = useState(false);
+// Type for items in the order state
+interface OrderItemState {
+  itemId: string;
+  itemType: 'menu' | 'set';
+  quantity: number;
+  price: number;
+}
 
-  const [createReservation, { isLoading: loadingReserve }] =
-    useCreateReservationMutation();
-  const navigate = useNavigate()
-  const [reservations, setReservations] = useState<any[]>([]);
-  // const [noTable, setNoTable] = useState(false);
-  // const [autoTableId, setAutoTableId] = useState("");
+function PreOrder() {
+  const [getall] = useGetAllMenuMutation();
+  const [createOrderMutation] = useCreateOrderMutation();
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-    reset,
-  } = useForm<FormType>({
-    resolver: zodResolver(reservationSchema),
-    defaultValues: { numberOfPeople: 1, date: "", slot: "" },
-  });
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [sets, setSets] = useState<Set[]>([]);
+  const [activeSection, setActiveSection] = useState("popular");
+  const [loading, setLoading] = useState(false);
 
-  const people = watch("numberOfPeople");
-  const date = watch("date");
-  const table_id = watch("table_id");
+  // State to manage the items currently in the order (selected and with quantities)
+  // Structure: [{ itemId: string, itemType: 'menu' | 'set', quantity: number, price: number }]
+  const [orderItems, setOrderItems] = useState<OrderItemState[]>([]);
 
-  const { data: tables = [], isLoading: loadingTables } =
-    useGetAllTableQuery(people);
-  const availableTables = tables.filter(
-    (t) => t.capacity >= people && t.capacity <= 7
-  );
-  const confirm = async () => {
-    
-    if(!people || !date || !table_id){
-      toast.info('You need to select a Table')
-    }else{
-      setStep2(true)
-    }
-    
-  };
+  // Get tableId from URL parameters
+  const { tableId } = useParams<{ tableId: string }>();
+
+  // Refs for scrolling
+  const popularRef = useRef<HTMLDivElement>(null);
+  const setRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (table_id && date) {
-      fetch(
-        `http://localhost:8000/api/reservations/slots?table_id=${table_id}&date=${date}`
-      )
-        .then((res) => res.json())
-        .then(setReservations)
-        .catch(() => setReservations([]));
-      setValue("slot", "");
-    } else {
-      setReservations([]);
-      setValue("slot", "");
+    setLoading(true);
+    const fetchData = async () => {
+      try {
+        const res = await getall({});
+        if (res.data) {
+          setMenuItems(res.data.menu || []);
+          setSets(res.data.sets || []);
+        } else {
+          console.error("API response did not contain expected data.");
+          toast.error("Failed to load menu items.");
+        }
+      } catch (error) {
+        console.error("Error fetching menu:", error);
+        toast.error("Error fetching menu items. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [getall]);
+
+  const handleSectionClick = (section: string) => {
+    setActiveSection(section);
+    let targetRef: React.RefObject<HTMLDivElement> | null = null;
+    switch (section) {
+      case "popular": targetRef = popularRef; break;
+      case "set": targetRef = setRef; break;
+      case "menu": targetRef = menuRef; break;
+      default: return;
     }
-    document.body.style.overflow = "";
-  }, [table_id, date]);
-const selectedTable = tables.find((t: any) => t._id === table_id);
-  const isSlotReserved = (slot: string) => {
-    const slotHour = Number(slot.split(":")[0]);
-    return reservations.some((r) => {
-      const resStart = new Date(r.start_time).getHours();
-      const resEnd = new Date(r.end_time).getHours();
-      // Check if [slotHour, slotHour+2) overlaps with [resStart, resEnd)
-      return slotHour < resEnd && slotHour + 2 > resStart;
+
+    if (targetRef?.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const target = targetRef.current;
+      const targetPosition = target.offsetTop - container.offsetTop;
+      container.scrollTo({ top: targetPosition, behavior: "smooth" });
+    }
+  };
+
+  // Function to update quantity or add/remove item from orderItems state
+  const updateOrderItem = (itemId: string, itemType: 'menu' | 'set', change: number) => {
+    setOrderItems(currentOrderItems => {
+      const existingItemIndex = currentOrderItems.findIndex(
+        (item) => item.itemId === itemId && item.itemType === itemType
+      );
+
+      let updatedOrderItems = [...currentOrderItems];
+
+      if (existingItemIndex > -1) { // Item already in order
+        const newQuantity = updatedOrderItems[existingItemIndex].quantity + change;
+        if (newQuantity > 0) {
+          updatedOrderItems[existingItemIndex].quantity = newQuantity;
+        } else {
+          // Remove item if quantity becomes 0
+          updatedOrderItems.splice(existingItemIndex, 1);
+        }
+      } else if (change > 0) { // Item not in order, and we're adding it (change is +1)
+        let price = 0;
+        if (itemType === 'menu') {
+          price = menuItems.find(menu => menu._id === itemId)?.price ?? 0;
+        } else if (itemType === 'set') {
+          price = sets.find(set => set._id === itemId)?.price ?? 0;
+        }
+        
+        updatedOrderItems.push({
+          itemId: itemId,
+          itemType: itemType,
+          quantity: 1, // Start with quantity 1 when adding
+          price: price
+        });
+      }
+      // If change is negative and item wasn't found, do nothing
+      return updatedOrderItems;
     });
   };
 
-  const onSubmit: SubmitHandler<FormType> = async (data) => {
-    const start_time = `${data.date}T${data.slot}:00`;
-    const endHour = String(Number(data.slot.split(":")[0]) + 2).padStart(
-      2,
-      "0"
-    );
-    const end_time = `${data.date}T${endHour}:00`;
+  const handleAddItem = (itemId: string, itemType: 'menu' | 'set') => {
+    updateOrderItem(itemId, itemType, 1);
+  };
+
+  const handleRemoveItem = (itemId: string, itemType: 'menu' | 'set') => {
+    updateOrderItem(itemId, itemType, -1);
+  };
+
+  const getItemQuantity = (itemId: string, itemType: 'menu' | 'set'): number => {
+    const item = orderItems.find(i => i.itemId === itemId && i.itemType === itemType);
+    return item ? item.quantity : 0;
+  };
+
+  // Function to handle confirming the order
+  const handleConfirmOrder = async () => {
+    if (orderItems.length === 0) {
+      toast.warn("Please add items to your order!");
+      return;
+    }
+
+    if (!tableId) { // Check if tableId is available
+        toast.error("Table selection is required for ordering!");
+        // You might want to redirect to a page to select a table, or handle this error
+        return;
+    }
+
+    const payload = {
+      table_id: tableId,
+      order_items: orderItems.map(item => {
+        const orderItemPayload: any = { quantity: item.quantity };
+        if (item.itemType === 'menu') {
+          orderItemPayload.menu_id = item.itemId;
+        } else if (item.itemType === 'set') {
+          orderItemPayload.set_id = item.itemId;
+        }
+        return orderItemPayload;
+      }).filter(item => item.menu_id || item.set_id), // Ensure only valid items are sent
+      // Add other fields if your mutation requires them (discount_amount, service_charge)
+    };
+    
+    if (payload.order_items.length === 0) {
+        toast.error("No valid items in the order!");
+        return;
+    }
 
     try {
-      await createReservation({
-        user_id,
-        table_id: data.table_id,
-        start_time,
-        end_time,
-      }).unwrap();
-      toast.success("Reservation successful!");
-      reset({ numberOfPeople: 1, table_id: "", date: "", slot: "" });
-      navigate('/success-reserved')
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Reservation failed!");
+      // Assuming createOrderMutation returns a promise that resolves with { data: { order: ..., order_items: ..., summary: ... } }
+      const response = await createOrderMutation(payload).unwrap(); 
+      toast.success("Order placed successfully!");
+      
+      navigate('/success-reserved', { 
+        state: { orderData: response.data } 
+      });
+      
+      setOrderItems([]); // Clear the order after successful submission
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      toast.error(error.data?.message || error.message || "Failed to place order");
     }
   };
+
+  // Helper to render quantity controls based on item selection
+  const renderQuantityControls = (itemId: string, itemType: 'menu' | 'set') => {
+    const quantity = getItemQuantity(itemId, itemType);
+    const isItemInOrder = quantity > 0;
+
+    return (
+      <div className="flex flex-col items-center gap-2">
+        {!isItemInOrder ? (
+          // Show "Add" button if item is not in order
+          <button 
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent card click from triggering add
+              handleAddItem(itemId, itemType);
+            }}
+            className="p-1 px-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm"
+          >
+            Add
+          </button>
+        ) : (
+          // Show quantity and +/- buttons if item is in order
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click from triggering remove
+                handleRemoveItem(itemId, itemType);
+              }}
+              className="p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+            >
+              <FontAwesomeIcon icon={faMinus} size="sm"/>
+            </button>
+            <span className="text-lg font-semibold">{quantity}</span>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click from triggering add
+                handleAddItem(itemId, itemType);
+              }}
+              className="p-1 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors"
+            >
+              <FontAwesomeIcon icon={faPlus} size="sm"/>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <>
-      <div className="w-60 flex mx-auto pt-4">
-        <ol className="flex items-center  w-full text-xs text-gray-900 font-medium sm:text-base">
-          {!step2? <li className="flex w-full relative text-gray-900  after:content-['']  after:w-full after:h-0.5  after:bg-gray-200 after:inline-block after:absolute lg:after:top-5 after:top-3 after:left-4">
-            <div className="block whitespace-nowrap z-10">
-              <span className="w-6 h-6 bg-indigo-50 border-2 border-indigo-600 rounded-full flex justify-center items-center mx-auto mb-3 text-sm text-indigo-600 lg:w-10 lg:h-10">
-                1
-              </span>{" "}
-              Step 1
-            </div>
-          </li> : <li className="flex w-full relative text-indigo-600  after:content-['']  after:w-full after:h-0.5  after:bg-indigo-600 after:inline-block after:absolute lg:after:top-5 after:top-3 after:left-4">
-         <div className="block whitespace-nowrap z-10">
-             <span className="w-6 h-6 bg-indigo-600 border-2 border-transparent rounded-full flex justify-center items-center mx-auto mb-3 text-sm text-white lg:w-10 lg:h-10">1</span> Step 1
-         </div>
-      </li>}
-
-          {!step2?<li className="flex  relative text-gray-900  ">
-            <div className="block whitespace-nowrap z-10">
-              <span className="w-6 h-6 bg-gray-50 border-2 border-gray-200 rounded-full flex justify-center items-center mx-auto mb-3 text-sm  lg:w-10 lg:h-10">
-                2
-              </span>{" "}
-              Step 2
-            </div>
-          </li>:<li className="flex relative text-gray-900  ">
-            <div className="block whitespace-nowrap z-10">
-              <span className="w-6 h-6 bg-indigo-50 border-2 border-indigo-600 rounded-full flex justify-center items-center mx-auto mb-3 text-sm text-indigo-600 lg:w-10 lg:h-10">
-                2
-              </span>{" "}
-              Step 2
-            </div>
-          </li> }
-        </ol>
+    <div className="w-full mx-auto lg:w-[800px] relative">
+      {/* Navigation Bar */}
+      <div className="w-full mx-auto sticky top-0 z-10 bg-white border-b">
+          <nav className="flex justify-evenly items-center p-3">
+            <button
+              onClick={() => handleSectionClick("popular")}
+              className={`text-xl p-3 px-5 rounded-md ${
+                activeSection === "popular" ? "bg-blue-100 text-blue-600 font-semibold" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Popular
+            </button>
+            <button
+              onClick={() => handleSectionClick("set")}
+              className={`text-xl p-3 px-5 rounded-md ${
+                activeSection === "set" ? "bg-blue-100 text-blue-600 font-semibold" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Set
+            </button>
+            <button
+              onClick={() => handleSectionClick("menu")}
+              className={`text-xl p-3 px-5 rounded-md ${
+                activeSection === "menu" ? "bg-blue-100 text-blue-600 font-semibold" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Menu
+            </button>
+          </nav>
       </div>
-      <div className="w-[500px] m-auto my-10  p-2 border border-gray-300 shadow-[0px_2px_12px_2px_rgba(0,_0,_0,_0.2)]">
-        <div className="m-1 border p-6 border-gray-400">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            { !step2 &&  <div className="space-y-5">
-            <h1 className="text-2xl font-bold text-center text-gray-600">
-              Make A Reservation
-            </h1>
-            <div>
-              <label className="">Number of People</label>
-              <input
-                type="number"
-                min={1}
-                max={7}
-                {...register("numberOfPeople", { valueAsNumber: true })}
-                className="border p-2 w-full border-slate-200 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]"
-              />
-              {errors.numberOfPeople && (
-                <p className="text-red-500">{errors.numberOfPeople.message}</p>
-              )}
-            </div>
-            <div>
-              <label>Table</label>
-              {loadingTables ? (
-                <p>Loading tables...</p>
-              ) : (
-                <select
-                  {...register("table_id")}
-                  className="w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded pl-3 pr-8 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-400 shadow-sm focus:shadow-md appearance-none cursor-pointer"
+      
+      {!loading ? (
+        <div 
+          ref={scrollContainerRef}
+          className="h-[calc(100vh-180px)] overflow-y-auto px-3 sm:px-6"
+        >
+          {/* Popular Section */}
+          <h1 ref={popularRef} className="text-2xl font-semibold py-3 sticky top-[60px] bg-white z-5">
+            <FontAwesomeIcon icon={faFire} className="mr-2 text-orange-500"/> Popular
+          </h1>
+          <div className="grid grid-cols-1 gap-4"> {/* Simplified grid */}
+            {sets.length > 0 ? (
+              sets.map((s) => ( 
+                <div 
+                  key={s._id} 
+                  className="flex items-center gap-4 p-4 border rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" 
+                  onClick={() => handleAddItem(s._id, 'set')} // Click anywhere on card to add if not present
                 >
-                  <option value="">Select a table</option>
-                  {availableTables.map((table: any) => (
-                    <option
-                      className="border-gray-400"
-                      key={table._id}
-                      value={table._id}
-                    >
-                      {table.name ?? `Table No ${table.table_No}`} (seats:{" "}
-                      {table.capacity})
-                    </option>
-                  ))}
-                </select>
-              )}
-              {availableTables.length === 0 && (
-                <p className="text-red-500">
-                  No tables for this party size (max 7)
-                </p>
-              )}
-              {errors.table_id && (
-                <p className="text-red-500">{errors.table_id.message}</p>
-              )}
-            </div>
-            <div>
-              <label>Date</label>
-              <input
-                type="date"
-                {...register("date")}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded pl-3 pr-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-400 shadow-sm focus:shadow-md appearance-none cursor-pointer"
-              />
-              {errors.date && (
-                <p className="text-red-500">{errors.date.message}</p>
-              )}
-            </div>
-            <h1 className="text-center font-semibold text-gray-500">
-              Available Tables
-            </h1>
-            <div>
-              <label>Time Slot</label>
-              <div className="flex flex-wrap gap-2">
-                {slots.map((slot) => {
-                  const reserved = isSlotReserved(slot);
-                  console.log(slot, reserved);
-                  return (
-                    <button
-                      type="button"
-                      key={slot}
-                      disabled={
-                        isSlotReserved(slot) ||
-                        !date ||
-                        !table_id ||
-                        loadingReserve
-                      }
-                      className={`px-4 py-2 border rounded text-lg font-semibold
-      ${
-        isSlotReserved(slot)
-          ? "bg-red-500 text-white cursor-not-allowed line-through"
-          : "bg-gray-100 text-black"
-      }
-      ${watch("slot") === slot ? "bg-green-300" : ""}
-    `}
-                      onClick={() =>
-                        !isSlotReserved(slot) && setValue("slot", slot)
-                      }
-                    >
-                      {slot} {isSlotReserved(slot) && ""}
-                    </button>
-                    
-                  );
-                })}
-
-                
-                
-              </div>
-              {errors.slot && (
-                <p className="text-red-500">{errors.slot.message}</p>
-              )}
-            </div>
-              <div className="flex ">
-                <button
-                type="button"
-                onClick={confirm}
-               
-                className="mx-auto group relative inline-flex h-12 w-35 items-center justify-center cursor-pointer overflow-hidden  bg-neutral-950 px-6 font-medium text-neutral-200"
-              >
-                <span>Next</span>
-                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-                  <div className="relative h-full w-8 bg-white/20"></div>
-                </div>
-              </button>
-              </div>
-            </div>}
-            {step2 && <div className="space-y-5">
-              <div className="p-3 bg-amber-200">
-                <p className="text-center">We have a table for you  at <span className="font-bold">Table No {selectedTable.table_No} </span> for <span className="font-bold">{people}</span> people at <span className="font-bold">{selectedTable ? `Table No ${selectedTable.table_No}` : "-"}</span> at <span className="font-bold">{slots.find(s => s === watch("slot")) ? `${watch("slot")}:00` : "-"}</span> on <span className="font-bold">{date ? new Date(date).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short", year: "numeric" }) : "-"}</span></p>
-              </div>
-              <div className="border border-gray-300 p-3 space-y-5">
-                <div className="flex justify-between p-2">
-                   <div className="ml-10">
-                      <FontAwesomeIcon icon={faChair} /><span className="ml-2">Tabel No {selectedTable.table_No}</span> 
-                   </div>
-                   <div className="mr-25">
-                       <FontAwesomeIcon icon={faPerson} /><span className="ml-2"> x {people}</span> 
-                   </div>
-                </div>
-                <div className="flex justify-between p-2">
-                   <div className="ml-10">
-                      <FontAwesomeIcon icon={faClock} /><span className="ml-2">{slots.find(s => s === watch("slot")) ? `${watch("slot")}:00` : "-"}</span> 
-                   </div>
-                   <div className="mr-2">
-                       <FontAwesomeIcon icon={faCalendarDays} /><span className="ml-2">{date ? new Date(date).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short", year: "numeric" }) : "-"}</span> 
-                   </div>
-                </div>
-              </div>
-              <div className="bg-gray-200 p-3 ">
-                <p className="font-thin">Note </p>
-                <p className="font-thin ">Each reservation allows for a maximum of 2 hours at the table.</p>
-                <p className="font-thin">If you need to make any changes, you may go back to the previous step.</p>
-                <p className="font-thin">If you’d like to cancel, please do so at least 1 day before your reservation.</p>
-              </div>
-                <div className=" flex  justify-between w-full">
-                  <div>
-                  <button onClick={()=>setStep2(false)} type="button" className=" relative h-12 w-35 overflow-hidden rounded border border-gray-300 bg-white px-5 py-2.5 text-gray-600 cursor-pointer transition-all duration-300 hover:bg-gray-300 hover:ring-2 hover:ring-neutral-400 hover:ring-offset-2"><span className="relative">Back</span></button>
+                  <img 
+                    src={s.image || 'placeholder-image.jpg'} 
+                    className="w-24 h-24 object-cover rounded-md" 
+                    alt={s.name} 
+                  />
+                  <div className="flex-1">
+                    <h1 className="font-semibold text-lg">{s.name}</h1>
+                    <div className="text-sm text-gray-500 mb-1">
+                      {s.menu_items?.map((m: any, mIndex) => ( 
+                        <span key={m._id}>
+                          {mIndex > 0 && ", "} ({m.quantity}) {m.menu?.name || 'Unknown Item'} 
+                        </span>
+                      ))}
+                    </div>
+                    <p className="font-medium text-gray-800">{s.price} MMK</p>
                   </div>
-                  <div>
-              <button
-                type="submit"
-                disabled={loadingReserve || availableTables.length === 0}
-                className="mx-auto group relative inline-flex h-12 w-35 items-center justify-center cursor-pointer overflow-hidden  bg-neutral-950 px-6 font-medium text-neutral-200"
-              >
-                <span>{loadingReserve ? "Reserving..." : "Reserve"}</span>
-                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-                  <div className="relative h-full w-8 bg-white/20"></div>
+                  {/* Render Quantity Controls */}
+                  {renderQuantityControls(s._id, 'set')}
                 </div>
-              </button>
-              </div>
-            </div>
-            </div>}
-          </form>
+              ))
+            ) : (
+              <p className="text-gray-500">No popular items found.</p>
+            )}
+          </div>
+
+          {/* Set Section */}
+          <h1 ref={setRef} className="text-2xl font-semibold py-3 sticky top-[60px] bg-white z-5">
+            Sets
+          </h1>
+          <div className="grid grid-cols-1 gap-4">
+             {sets.length > 0 ? (
+              sets.map((s) => ( 
+                <div 
+                  key={s._id} 
+                  className="flex items-center gap-4 p-4 border rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" 
+                  onClick={() => handleAddItem(s._id, 'set')} // Click anywhere on card to add if not present
+                >
+                  <img 
+                    src={s.image || 'placeholder-image.jpg'} 
+                    className="w-24 h-24 object-cover rounded-md" 
+                    alt={s.name} 
+                  />
+                  <div className="flex-1">
+                    <h1 className="font-semibold text-lg">{s.name}</h1>
+                    <div className="text-sm text-gray-500 mb-1">
+                      {s.menu_items?.map((m: any, mIndex) => (
+                        <span key={m._id}>
+                          {mIndex > 0 && ", "} ({m.quantity}) {m.menu?.name || 'Unknown Item'}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="font-medium text-gray-800">{s.price} MMK</p>
+                  </div>
+                  {/* Render Quantity Controls */}
+                  {renderQuantityControls(s._id, 'set')}
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No sets found.</p>
+            )}
+          </div>
+
+          {/* Menu Section */}
+          <h1 ref={menuRef} className="text-2xl font-semibold py-3 sticky top-[60px] bg-white z-5">
+            Menu
+          </h1>
+          <div className="grid grid-cols-1 gap-4">
+            {menuItems.length > 0 ? (
+              menuItems.map((m) => ( 
+                <div 
+                  key={m._id} 
+                  className="flex items-center gap-4 p-4 border rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer" 
+                  onClick={() => handleAddItem(m._id, 'menu')} // Click anywhere on card to add if not present
+                >
+                  <img 
+                    src={m.image || 'placeholder-image.jpg'} 
+                    className="w-24 h-24 object-cover rounded-md" 
+                    alt={m.name} 
+                  />
+                  <div className="flex-1">
+                    <h1 className="font-semibold text-lg">{m.name}</h1>
+                    <p className="text-sm text-gray-500">{m.type}</p>
+                    <p className="font-medium text-gray-800">{m.price} MMK</p>
+                  </div>
+                  {/* Render Quantity Controls */}
+                  {renderQuantityControls(m._id, 'menu')}
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No menu items found.</p>
+            )}
+          </div>
         </div>
+      ) : (
+        // Loading spinner
+        <div className="p-4 flex items-center justify-center h-[600px]">
+          <svg aria-hidden="true" className="inline w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-yellow-400" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+              <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+          </svg>
+          <span className="sr-only">Loading...</span>
+        </div>
+      )}
+
+      {/* Sticky Footer for Confirm Button */}
+      <div className="sticky bottom-0 bg-white p-4 border-t z-20">
+        <button 
+          onClick={handleConfirmOrder}
+          disabled={orderItems.length === 0}
+          className={`w-full py-3 rounded-lg text-white font-semibold transition-colors 
+                     ${orderItems.length === 0 
+                       ? 'bg-gray-400 cursor-not-allowed' 
+                       : 'bg-blue-500 hover:bg-blue-600'}`}
+        >
+          Confirm Order ({orderItems.reduce((sum, item) => sum + item.quantity, 0)})
+        </button>
       </div>
-    </>
+    </div>
   );
 }
 
-export default Reservation;
+export default PreOrder;

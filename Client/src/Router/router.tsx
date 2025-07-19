@@ -37,7 +37,7 @@ const router = createBrowserRouter([
                element:<Success/>
             },
              {
-               path:'/pro-order',
+               path:'/pro-order/:id',
                element:<PreOrder/>
             },
         ]   

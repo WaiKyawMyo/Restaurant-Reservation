@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import { Menu } from "../models/Menu";
 import { Order } from "../models/Order";
 import { OrderMenu } from "../models/Order_Menu";
+import { Set } from "../models/Set";
 
 // const hasOverlap = async (table_id, start_time, end_time) => {
 //   return await Reservation.findOne({
@@ -128,7 +129,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
     } = req.body;
     
     // Get user_id from your existing auth middleware
-    const user_id = req.user?.id || req.user?._id;
+    const user_id = req.user?._id;
 
     // Validate required fields
     if (!table_id || !order_items || order_items.length === 0) {
@@ -171,9 +172,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
                 throw new Error(`Menu item with ID ${menu_id} not found`);
             }
 
-            if (!menu.is_available) {
-                throw new Error(`Menu item "${menu.name}" is not available`);
-            }
+            
 
             // Validate set exists and is available
             const set = await Set.findById(set_id).session(session);
@@ -181,9 +180,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
                 throw new Error(`Set with ID ${set_id} not found`);
             }
 
-            if (!set.is_available) {
-                throw new Error(`Set "${set.name}" is not available`);
-            }
+            
 
             // Calculate subtotal using menu price
             const itemTotal = menu.price * quantity;
@@ -264,7 +261,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
                 summary: {
                     order_id: order._id,
                     order_number: order.order_number,
-                    table_number: table.number,
+                    table_number: table.table_No,
                     total_items: orderItemsWithDetails.length,
                     subtotal: order.subtotal,
                     tax_amount: order.tax_amount,
@@ -282,8 +279,8 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
         
         res.status(400).json({
             success: false,
-            message: error.message || "Failed to create order",
-            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            message: "Failed to create order",
+           
         });
     } finally {
         session.endSession();

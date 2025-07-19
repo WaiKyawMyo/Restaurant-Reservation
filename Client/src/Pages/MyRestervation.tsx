@@ -164,6 +164,10 @@ function MyRestervation() {
                       </td>
                       <td className="p-4 border-b border-slate-200">
                         <button
+                          onClick={() => {
+                            navigate(`/pro-order/${res.table_id._id}`);
+                          }}
+
                           type="button"
                           disabled={!canCancel || over}
                           className={`py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent
