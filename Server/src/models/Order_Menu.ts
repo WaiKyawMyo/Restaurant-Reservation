@@ -4,7 +4,7 @@ const orderMenuSchema = new Schema({
     menu_id:{
         type:Schema.Types.ObjectId,
         ref:"Menu",
-        required:true
+        nullable: true
     },
     quantity:{
         type:Number,
@@ -13,7 +13,7 @@ const orderMenuSchema = new Schema({
     set_id:{
         type:Schema.Types.ObjectId,
         ref:"Set",
-        required:true
+        nullable: true
     },
     order_id:{
         type:Schema.Types.ObjectId,

@@ -15,11 +15,7 @@ const orderSchema = new Schema({
         required:true,
         
     },
-      order_number: {
-        type: String,
-        unique: true,
-        required: true
-    },
+     
     total: {
         type: Number,
         required: true,
@@ -48,13 +44,7 @@ const orderSchema = new Schema({
 
 
 })
-orderSchema.pre('save', async function(next) {
-    if (!this.order_number) {
-        const count = await mongoose.model('Order').countDocuments();
-        this.order_number = `ORD-${(count + 1).toString().padStart(4, '0')}`;
-    }
-    next();
-});
+
 
 export const Order = mongoose.model("Order",orderSchema)    
 

@@ -151,62 +151,75 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
         }
 
         let subtotal = 0;
-        const orderMenuItems = [];
+        let orderMenuItems = [];
 
         // Process each order item
         for (const item of order_items) {
             const { menu_id, quantity, set_id } = item;
 
             // Validate required fields
-            if (!menu_id || !quantity || quantity <= 0) {
+            if ( !quantity || quantity <= 0) {
                 throw new Error("Invalid menu item or quantity");
             }
 
-            if (!set_id) {
-                throw new Error("Set ID is required");
-            }
-
-            // Validate menu item exists and is available
+            if(menu_id){
+ // Validate menu item exists and is available
             const menu = await Menu.findById(menu_id).session(session);
             if (!menu) {
                 throw new Error(`Menu item with ID ${menu_id} not found`);
+            }else{
+                const itemTotal = menu.price * quantity;
+                 subtotal += itemTotal;
             }
+           }
 
             
-
+           if(set_id){
             // Validate set exists and is available
-            const set = await Set.findById(set_id).session(session);
-            if (!set) {
-                throw new Error(`Set with ID ${set_id} not found`);
-            }
+                const set = await Set.findById(set_id).session(session);
+                if (!set) {
+                 throw new Error(`Set with ID ${set_id} not found`);
+                }else{
+                    const itemTotal = Number(set.price) * quantity
+                    subtotal+= itemTotal
+                }
 
-            
+            }
 
             // Calculate subtotal using menu price
-            const itemTotal = menu.price * quantity;
-            subtotal += itemTotal;
+            
 
             // Prepare order menu item
-            orderMenuItems.push({
-                menu_id,
+            if(menu_id){
+                orderMenuItems.push({
+                menu_id :menu_id,
                 quantity,
-                set_id,
                 table_id
             });
+            }else{
+                orderMenuItems.push({
+                set_id :set_id,
+                quantity,
+                
+                table_id
+            });
+            }
+            
         }
+        console.log(orderMenuItems)
 
         // Calculate totals
         const tax_rate = 0.1; // 10% tax
         const tax_amount = subtotal * tax_rate;
         const total = subtotal + tax_amount + service_charge - discount_amount;
-
+        
         // Validate total amount
         if (total < 0) {
             throw new Error("Total amount cannot be negative");
         }
 
         // Create the main order
-        const order = new Order({
+        const order =await Order.create({
             time: new Date(),
             user_id,
             table_id,
@@ -217,40 +230,42 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             total
             // order_number will be generated automatically by pre-save hook
         });
-
-        await order.save({ session });
+        console.log(order)
+        
 
         // Add order_id to each order menu item and create them
         const orderMenuItemsWithOrderId = orderMenuItems.map(item => ({
             ...item,
             order_id: order._id
         }));
+        
 
-        await OrderMenu.insertMany(orderMenuItemsWithOrderId, { session });
-
-        // Update table status to occupied if available
-        if (table.status === 'available') {
-            await Table.findByIdAndUpdate(
-                table_id,
-                { status: 'occupied' },
-                { session }
-            );
+        if(Array.isArray(orderMenuItemsWithOrderId)){
+            for (const item of orderMenuItemsWithOrderId){
+             const dataResponse=  await OrderMenu.create({
+                    menu_id:item.menu_id?item.menu_id: null,
+                    quantity:item.quantity,
+                    set_id:item.set_id?item.set_id: null,
+                    order_id:item.order_id,
+                    table_id:item.table_id
+                })
+            }
         }
+        
 
-        // Commit transaction
-        await session.commitTransaction();
+       
 
         // Get order items with populated data
         const orderItemsWithDetails = await OrderMenu.find({ order_id: order._id })
             .populate('menu_id', 'name type price image is_available cloudinary_id')
-            .populate('set_id', 'name price description category is_available')
-            .populate('table_id', 'number section capacity status')
-            .populate('order_id', 'order_number time total subtotal tax_amount');
+            .populate('set_id', 'name price  ')
+            .populate('table_id', 'table_No capacity ')
+            .populate('order_id');
 
         // Populate the order
         const populatedOrder = await Order.findById(order._id)
             .populate('user_id', 'name email phone role')
-            .populate('table_id', 'number section capacity status location');
+            .populate('table_id', 'table_No capacity ');
 
         res.status(201).json({
             success: true,
@@ -260,7 +275,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
                 order_items: orderItemsWithDetails,
                 summary: {
                     order_id: order._id,
-                    order_number: order.order_number,
+                 
                     table_number: table.table_No,
                     total_items: orderItemsWithDetails.length,
                     subtotal: order.subtotal,
