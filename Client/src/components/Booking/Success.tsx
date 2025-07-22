@@ -5,6 +5,7 @@ function Success() {
   const navigate = useNavigate();
   const location = useLocation();
   console.log(location.state.table_id)
+  console.log("Reservation_id:",location.state.reservation_id)
   return (
     <div className="w-[500px] m-auto my-10  p-2 border border-gray-300 shadow-[0px_2px_12px_2px_rgba(0,_0,_0,_0.2)]">
       <div className="m-1 border p-6 border-gray-400">
@@ -15,7 +16,11 @@ function Success() {
           <img src={Image} alt="" />
         </div>
         <div className="flex justify-evenly">
-          <button onClick={()=>navigate(`/pro-order/${location.state.table_id}`)} className=" group relative inline-flex h-12 w-35 items-center justify-center cursor-pointer overflow-hidden  bg-neutral-950 px-6 font-medium text-neutral-200">
+          <button onClick={()=>navigate(`/pro-order/${location.state.table_id}`,{
+            state:{
+                reservation_id2:location.state.reservation_id
+            }
+          })} className=" group relative inline-flex h-12 w-35 items-center justify-center cursor-pointer overflow-hidden  bg-neutral-950 px-6 font-medium text-neutral-200">
             <span>Pre-Order</span>
             <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
               <div className="relative h-full w-8 bg-white/20"></div>

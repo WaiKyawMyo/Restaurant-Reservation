@@ -126,7 +126,7 @@ function MyRestervation() {
                 <th className="p-4 border-b border-slate-300 bg-slate-200">
                   Reservation End
                 </th>
-                <th className="p-4 border-b border-slate-300 bg-slate-200"></th>
+                <th className="p-4 border-b border-slate-300 bg-slate-200">Order</th>
                 <th className="p-4 border-b border-slate-300 bg-slate-200"></th>
               </tr>
             </thead>
@@ -165,7 +165,11 @@ function MyRestervation() {
                       <td className="p-4 border-b border-slate-200">
                         <button
                           onClick={() => {
-                            navigate(`/pro-order/${res.table_id._id}`);
+                            navigate(`/pro-order/${res.table_id._id}`,{
+                              state:{
+                                reservation_id:res._id
+                              }
+                            });
                           }}
 
                           type="button"

@@ -107,7 +107,7 @@ const selectedTable = tables.find((t: any) => t._id === table_id);
     const end_time = `${data.date}T${endHour}:00`;
 
     try {
-      await createReservation({
+      const resData =  await createReservation({
         user_id,
         table_id: data.table_id,
         start_time,
@@ -115,9 +115,11 @@ const selectedTable = tables.find((t: any) => t._id === table_id);
       }).unwrap();
       toast.success("Reservation successful!");
       reset({ numberOfPeople: 1, table_id: "", date: "", slot: "" });
+      console.log(resData)
       navigate('/success-reserved',{
           state:{
-            table_id:data.table_id
+            table_id:data.table_id,
+            reservation_id:resData.reservation._id
           }
       })
     } catch (err: any) {
