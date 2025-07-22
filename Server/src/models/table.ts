@@ -19,7 +19,7 @@ const tableSchema =new Schema<ITable> ({
     },
     is_reserved:{
         type:Boolean,
-        d:true
+        
     },
     status:{
         type:String,

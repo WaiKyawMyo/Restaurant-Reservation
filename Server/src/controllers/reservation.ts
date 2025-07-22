@@ -114,20 +114,48 @@ export const myReservationGet =asyncHandler(async(req:AuthRequest,res:Response)=
   
 })
 
-export const removeReservation = asyncHandler(async(req:Request,res:Response)=>{
-  const {_id}=req.body
-   await Reservation.findByIdAndDelete({_id})
-  res.status(200).json({message:"Success Deleted"})
+export const removeReservation = asyncHandler(async(req: Request, res: Response) => {
+  const { _id } = req.body
+  
+  // Find all orders with the given reservation_id
+  const orderData = await Order.find({ reservation_id: _id })
+  
+
+  
+  if (orderData.length > 0) {
+    // Delete all OrderMenus for each order (using Promise.all for better performance)
+    await Promise.all(
+      orderData.map(order => OrderMenu.deleteMany({ order_id: order._id }))
+    )
+    
+    // Delete all orders with this reservation_id
+    await Order.deleteMany({ reservation_id: _id })
+    
+    // Delete the reservation itself
+    await Reservation.findByIdAndDelete(_id)
+    
+    res.status(200).json({ message: "Successfully deleted reservation" })
+  } else {
+    // Still delete the reservation even if no orders found
+    await Reservation.findByIdAndDelete(_id)
+    res.status(200).json({ message: "Reservation deleted (no related orders found)" })
+  }
 })
 
 export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
     const { 
         table_id, 
         order_items, 
+        reservation_id,
         discount_amount = 0,
         service_charge = 0
     } = req.body;
-    
+    if(!reservation_id){
+        res.status(400).json({
+            success:false,
+            message:"Reservation ID are Required"
+        })
+    }
     // Get user_id from your existing auth middleware
     const user_id = req.user?._id;
 
@@ -138,14 +166,18 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             message: "Table ID and order items are required"
         });
     }
+    if(!user_id){
+        res.status(400).json({
+            success:false,
+            message:"User ID is Required"
+        })
+    }
 
-    // Start transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
+   
 
-    try {
+   
         // Validate table exists
-        const table = await Table.findById(table_id).session(session);
+        const table = await Table.findById(table_id)
         if (!table) {
             throw new Error("Table not found");
         }
@@ -164,7 +196,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
 
             if(menu_id){
  // Validate menu item exists and is available
-            const menu = await Menu.findById(menu_id).session(session);
+            const menu = await Menu.findById(menu_id);
             if (!menu) {
                 throw new Error(`Menu item with ID ${menu_id} not found`);
             }else{
@@ -176,7 +208,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             
            if(set_id){
             // Validate set exists and is available
-                const set = await Set.findById(set_id).session(session);
+                const set = await Set.findById(set_id)
                 if (!set) {
                  throw new Error(`Set with ID ${set_id} not found`);
                 }else{
@@ -206,7 +238,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             }
             
         }
-        console.log(orderMenuItems)
+        
 
         // Calculate totals
         const tax_rate = 0.1; // 10% tax
@@ -222,6 +254,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
         const order =await Order.create({
             time: new Date(),
             user_id,
+            reservation_id,
             table_id,
             subtotal,
             tax_amount,
@@ -230,7 +263,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             total
             // order_number will be generated automatically by pre-save hook
         });
-        console.log(order)
+        
         
 
         // Add order_id to each order menu item and create them
@@ -288,16 +321,5 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             }
         });
 
-    } catch (error) {
-        // Rollback transaction on error
-        await session.abortTransaction();
-        
-        res.status(400).json({
-            success: false,
-            message: "Failed to create order",
-           
-        });
-    } finally {
-        session.endSession();
-    }
+    
 })

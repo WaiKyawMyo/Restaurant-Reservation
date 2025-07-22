@@ -23,7 +23,8 @@ const orderMenuSchema = new Schema({
     table_id:{
         type:Schema.Types.ObjectId,
         ref:"Table",
-        required:true
+        required:true,
+      
     }
 })
 

@@ -7,7 +7,9 @@ const orderSchema = new Schema({
     },
     user_id:{
         type:Schema.Types.ObjectId,
-        ref:"User"
+        ref:"User",
+        nullable:true,
+        unique:false
     },
     table_id:{
         type:Schema.Types.ObjectId,
@@ -15,7 +17,11 @@ const orderSchema = new Schema({
         required:true,
         
     },
-     
+     reservation_id:{
+        type:Schema.Types.ObjectId,
+        ref:"Table",
+        nullable:true
+     },
     total: {
         type: Number,
         required: true,
