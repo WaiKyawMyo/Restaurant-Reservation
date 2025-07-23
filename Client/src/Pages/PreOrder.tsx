@@ -68,11 +68,11 @@ function PreOrder() {
   const [orderItems, setOrderItems] = useState<OrderItemState[]>([]);
   const [orderLoading,setOrderLoading]=useState(false)
   const { id } = useParams<{ tableId: string }>();
-  const [payment,setPayment]= useState(true)
+  const [payment,setPayment]= useState(false)
   const [total,SetTotal]= useState(0)  
   const discountPercent = 5
   const taxRate =0.1
-  const servaceCharge =2500 
+  const servaceCharge =2000 
   const [discountAmount,setDiscountAmnout]= useState(0)
   const [taxAmount,setTaxAmount]= useState(0)
   const [realTotal,setRealTotal]=useState(0)
@@ -104,7 +104,7 @@ function PreOrder() {
     const fetchData = async () => {
       try {
         const res: ApiResponse = await getall({});
-        console.log(sets)
+        
         if (res?.data) {
           setMenuItems(res.data.menu || []);
           setSets(res.data.sets || []);
@@ -112,7 +112,7 @@ function PreOrder() {
           console.error("API response did not contain expected data.");
           toast.error("Failed to load menu items.");
         }
-        console.log(sets)
+        
       } catch (error) {
         console.error("Error fetching menu:", error);
         toast.error("Error fetching menu items. Please try again.");
@@ -216,9 +216,8 @@ function PreOrder() {
           price: price
         });
       }
-      updatedOrderItems.map((items)=>{
-        SetTotal((prev)=>prev+ items.price)
-      })
+      
+      
       return updatedOrderItems;
     });
   }, [menuItems, sets]);
@@ -312,11 +311,17 @@ function PreOrder() {
   // };
 
   //change Payment
-  const changePayment = ()=>{
+  const changePayment =async ()=>{
+ const newTotal = orderItems.reduce((sum, item) => sum + Number(item.price), 0);
+    SetTotal(newTotal);
     setPayment(true)
-    setTaxAmount(total * taxRate)
-    setDiscountAmnout(total * (discountPercent/100))
-    setRealTotal(total + taxAmount+ servaceCharge - discountAmount)
+     const newTaxAmount = newTotal * taxRate;
+  const newDiscountAmount = newTotal * (discountPercent / 100);
+  const newRealTotal = newTotal + newTaxAmount + servaceCharge - newDiscountAmount;
+    
+     setTaxAmount(newTaxAmount);
+  setDiscountAmnout(newDiscountAmount);
+  setRealTotal(newRealTotal);
   }
 
   // FIXED: Render quantity controls (prevents double increment/decrement)
@@ -623,6 +628,10 @@ function PreOrder() {
                 <dd className="text-base font-medium text-gray-900 dark:text-white">{discountPercent} %</dd>
               </dl>
 
+              <dl className="flex items-center justify-between gap-4">
+                <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Service fee</dt>
+                <dd className="text-base font-medium text-gray-900 dark:text-white">{servaceCharge} MMK</dd>
+              </dl>
               <dl className="flex items-center justify-between gap-4">
                 <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Tax</dt>
                 <dd className="text-base font-medium text-gray-900 dark:text-white">{taxAmount} MMK</dd>
