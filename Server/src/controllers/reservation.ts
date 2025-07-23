@@ -147,8 +147,8 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
         table_id, 
         order_items, 
         reservation_id,
-        discount_amount = 0,
-        service_charge = 0
+        discountPercent = 5,
+        service_charge = 2500
     } = req.body;
     if(!reservation_id){
         res.status(400).json({
@@ -239,11 +239,12 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             
         }
         
-
+        // Calculate discount amount from percentage
+        const discountAmount = subtotal * (discountPercent / 100);
         // Calculate totals
         const tax_rate = 0.1; // 10% tax
         const tax_amount = subtotal * tax_rate;
-        const total = subtotal + tax_amount + service_charge - discount_amount;
+        const total = subtotal + tax_amount + service_charge - discountAmount;
         
         // Validate total amount
         if (total < 0) {
@@ -258,7 +259,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
             table_id,
             subtotal,
             tax_amount,
-            discount_amount,
+            discount_amount : discountAmount,
             service_charge,
             total
             // order_number will be generated automatically by pre-save hook

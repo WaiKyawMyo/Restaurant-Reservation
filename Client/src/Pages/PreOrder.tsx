@@ -2,9 +2,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCreateOrderMutation, useGetAllMenuMutation } from "../Slice/API/userApi";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { faCartPlus, faFire, faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
-
+import { z } from "zod";
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from "react-router";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import PaymentSchema from "../Schema/Payment";
 // Run this once in your application or as a separate script
 
 
@@ -50,6 +54,8 @@ interface ApiResponse {
     sets?: Set[];
   };
 }
+type FormType = z.infer<typeof PaymentSchema>;
+
 
 function PreOrder() {
   const [getall] = useGetAllMenuMutation();
@@ -63,14 +69,34 @@ function PreOrder() {
   const [orderLoading,setOrderLoading]=useState(false)
   const { id } = useParams<{ tableId: string }>();
   const [payment,setPayment]= useState(true)
+  const [total,SetTotal]= useState(0)  
+  const discountPercent = 5
+  const taxRate =0.1
+  const servaceCharge =2500 
+  const [discountAmount,setDiscountAmnout]= useState(0)
+  const [taxAmount,setTaxAmount]= useState(0)
+  const [realTotal,setRealTotal]=useState(0)
+  
 
   // Refs for scrolling
   const popularRef = useRef<HTMLDivElement>(null);
   const setRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
+ 
   const navigate = useNavigate();
+  const {
+      register,
+      handleSubmit,
+      setValue,
+      watch,
+      formState: { errors },
+      reset,
+    } = useForm<FormType>({
+      resolver: zodResolver(PaymentSchema),
+      
+    });
+
 
   // Fetch data
   useEffect(() => {
@@ -133,6 +159,7 @@ function PreOrder() {
     }
   }, [loading]);
 
+  
   // Handle section navigation
   const handleSectionClick = (section: string) => {
     setActiveSection(section);
@@ -189,6 +216,9 @@ function PreOrder() {
           price: price
         });
       }
+      updatedOrderItems.map((items)=>{
+        SetTotal((prev)=>prev+ items.price)
+      })
       return updatedOrderItems;
     });
   }, [menuItems, sets]);
@@ -209,8 +239,7 @@ function PreOrder() {
     return item ? item.quantity : 0;
   };
 
-  // Handle order confirmation
-  const handleConfirmOrder = async () => {
+  const onSubmit: SubmitHandler<FormType> = async () => {
     setOrderLoading(true)
     if (orderItems.length === 0) {
       toast.warn("Please add items to your order!");
@@ -275,7 +304,20 @@ function PreOrder() {
       toast.error(errorMessage);
       setOrderLoading(false)
     }
-  };
+  }
+
+  // Handle order confirmation
+  // const handleConfirmOrder = async () => {
+    
+  // };
+
+  //change Payment
+  const changePayment = ()=>{
+    setPayment(true)
+    setTaxAmount(total * taxRate)
+    setDiscountAmnout(total * (discountPercent/100))
+    setRealTotal(total + taxAmount+ servaceCharge - discountAmount)
+  }
 
   // FIXED: Render quantity controls (prevents double increment/decrement)
   const renderQuantityControls = useCallback((itemId: string, itemType: 'menu' | 'set') => {
@@ -498,7 +540,7 @@ function PreOrder() {
         {/* Sticky Footer for Confirm Button */}
         <div className="sticky bottom-0 bg-white p-4 border-t z-20">
           <button 
-            onClick={handleConfirmOrder}
+            onClick={changePayment}
             disabled={orderItems.length === 0 || orderLoading}
             className={`w-full py-3 rounded-lg text-white font-semibold transition-colors 
                       ${orderItems.length === 0 
@@ -516,16 +558,16 @@ function PreOrder() {
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">Payment</h2>
 
       <div className="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12">
-        <form action="#" className="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:max-w-xl lg:p-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:max-w-xl lg:p-8">
           <div className="mb-6 grid grid-cols-2 gap-4">
             <div className="col-span-2 sm:col-span-1">
               <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Full name (as displayed on card)* </label>
-              <input type="text" id="full_name" className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="Bonnie Green" required />
+              <input type="text" id="full_name" {...register('cardName')} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="Bonnie Green" required />
             </div>
 
             <div className="col-span-2 sm:col-span-1">
               <label  className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Card number* </label>
-              <input type="text" id="card-number-input" className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 pe-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="xxxx-xxxx-xxxx-xxxx" pattern="^4[0-9]{12}(?:[0-9]{3})?$" required />
+              <input type="text" {...register('cardNumber')} id="card-number-input" className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 pe-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500  dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="xxxx-xxxx-xxxx-xxxx" pattern="^4[0-9]{12}(?:[0-9]{3})?$" required />
             </div>
 
             <div>
@@ -560,7 +602,7 @@ function PreOrder() {
             </div>
           </div>
 
-          <button type="submit" className="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4  focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Pay now</button>
+          <button  type="submit" className="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4  focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Pay now</button>
         </form>
 
         <div className="mt-6 grow sm:mt-8 lg:mt-0">
@@ -568,28 +610,28 @@ function PreOrder() {
             <div className="space-y-2">
               <dl className="flex items-center justify-between gap-4">
                 <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Original price</dt>
-                <dd className="text-base font-medium text-gray-900 dark:text-white">$6,592.00</dd>
+                <dd className="text-base font-medium text-gray-900 dark:text-white">{total} MMK</dd>
               </dl>
 
               <dl className="flex items-center justify-between gap-4">
                 <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Savings</dt>
-                <dd className="text-base font-medium text-green-500">-$299.00</dd>
+                <dd className="text-base font-medium text-green-500">-{discountAmount} MMK</dd>
               </dl>
 
               <dl className="flex items-center justify-between gap-4">
-                <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Store Pickup</dt>
-                <dd className="text-base font-medium text-gray-900 dark:text-white">$99</dd>
+                <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Discount</dt>
+                <dd className="text-base font-medium text-gray-900 dark:text-white">{discountPercent} %</dd>
               </dl>
 
               <dl className="flex items-center justify-between gap-4">
                 <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Tax</dt>
-                <dd className="text-base font-medium text-gray-900 dark:text-white">$799</dd>
+                <dd className="text-base font-medium text-gray-900 dark:text-white">{taxAmount} MMK</dd>
               </dl>
             </div>
 
             <dl className="flex items-center justify-between gap-4 border-t border-gray-200 pt-2 dark:border-gray-700">
               <dt className="text-base font-bold text-gray-900 dark:text-white">Total</dt>
-              <dd className="text-base font-bold text-gray-900 dark:text-white">$7,191.00</dd>
+              <dd className="text-base font-bold text-gray-900 dark:text-white">{realTotal} MMK</dd>
             </dl>
           </div>
 
