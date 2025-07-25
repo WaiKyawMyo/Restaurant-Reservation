@@ -1,4 +1,5 @@
 
+import PreOrder from "../../Pages/PreOrder";
 import { apiSlite } from "../Api";
 interface LoginInput {
     email:string,
@@ -135,6 +136,12 @@ export const userApiSlite =apiSlite.injectEndpoints({
             credentials:'include'
         })
     }),
+    PreOrder:build.mutation({
+        query:()=>({
+            url:"orders",
+            method:"get"
+        })
+    })
     })
 })
-export  const{ useCreateOrderMutation,useCreateReservationMutation, useGetAllMenuMutation,useDeleteReservationMutation ,useGetMyReservationMutation,useCreaetReservationMutation,useLoginMutation,useLogoutMutation,useUserRegisterMutation,useRequestOTPMutation,useVarifyOTPMutation,useChangePWwithOTPMutation,useProfileMutation,useUpdteProMutation}= userApiSlite
+export  const{ useCreateOrderMutation,useCreateReservationMutation, usePreOrderMutation,useGetAllMenuMutation,useDeleteReservationMutation ,useGetMyReservationMutation,useCreaetReservationMutation,useLoginMutation,useLogoutMutation,useUserRegisterMutation,useRequestOTPMutation,useVarifyOTPMutation,useChangePWwithOTPMutation,useProfileMutation,useUpdteProMutation}= userApiSlite

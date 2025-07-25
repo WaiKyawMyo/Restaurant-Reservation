@@ -106,6 +106,7 @@ export const myReservationGet =asyncHandler(async(req:AuthRequest,res:Response)=
   const userId= req.user?._id
   
   const reservations = await Reservation.find({ user_id: userId }).populate('table_id');
+  
    if (!reservations.length) {
      res.status(200).json({ message: "You don’t have any bookings yet. Ready to make one?" });
   }else{
@@ -113,7 +114,14 @@ export const myReservationGet =asyncHandler(async(req:AuthRequest,res:Response)=
   }
   
 })
-
+export const PreOrder = asyncHandler(async(req:Request,res:Response)=>{
+    const response = await Order.find({})
+    if(!response.length){
+        res.status(200).json({message:"You Don't have any order"})
+    }else{
+        res.status(200).json(response)
+    }
+})
 export const removeReservation = asyncHandler(async(req: Request, res: Response) => {
   const { _id } = req.body
   
@@ -324,3 +332,4 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
 
     
 })
+
