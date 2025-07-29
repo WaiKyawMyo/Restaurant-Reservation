@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useCreateOrderMutation, useGetAllMenuMutation } from "../Slice/API/userApi";
+import { useCreateOrderMutation, useGetAllMenuMutation, useGetDiscountMutation } from "../Slice/API/userApi";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { faCartPlus, faFire, faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { z } from "zod";
@@ -73,18 +73,19 @@ function PreOrder() {
   const [total,SetTotal]= useState(0)  
   const discountPercent = 5
   const taxRate =0.1
-  const servaceCharge =2000 
+  const servaceCharge =2500 
   const [discountAmount,setDiscountAmnout]= useState(0)
   const [taxAmount,setTaxAmount]= useState(0)
   const [realTotal,setRealTotal]=useState(0)
-  
+  const [getdiscount]= useGetDiscountMutation()
+  const [discount, setDiscount] = useState([]);
 
   // Refs for scrolling
   const popularRef = useRef<HTMLDivElement>(null);
   const setRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
- 
+  
   const navigate = useNavigate();
   const {
       register,
@@ -102,6 +103,9 @@ function PreOrder() {
   useEffect(() => {
     setLoading(true);
     const fetchData = async () => {
+      const discountdata =await getdiscount({})
+      
+      setDiscount(discountdata.data.data)
       try {
         const res: ApiResponse = await getall({});
         
@@ -121,7 +125,7 @@ function PreOrder() {
       }
     };
     fetchData();
-  }, [getall]);
+  }, [getall,getdiscount]);
 
   // Scroll listener
   useEffect(() => {
@@ -130,7 +134,7 @@ function PreOrder() {
       const popular = popularRef.current;
       const setSection = setRef.current;
       const menuSection = menuRef.current;
-     
+      
       if (!container || !popular || !setSection || !menuSection) return;
 
       const scrollTop = container.scrollTop;
@@ -272,6 +276,7 @@ function PreOrder() {
     payload = {
     table_id: id,
     reservation_id:location.state.reservation_id2 ,
+    discountPercent:discount[0].persent,
     order_items: orderItems.map(item => {
       const orderItemPayload: any = { quantity: item.quantity };
       if (item.itemType === 'menu') {
@@ -301,6 +306,7 @@ function PreOrder() {
       setOrderLoading(false)
       reset()
       setPayment(false)
+      navigate('/')
     } catch (error: any) {
       console.error("Error creating order:", error);
       const errorMessage = error?.data?.message || error?.message || "Failed to place order";
@@ -321,7 +327,7 @@ function PreOrder() {
     SetTotal(newTotal);
     setPayment(true)
      const newTaxAmount = newTotal * taxRate;
-  const newDiscountAmount = newTotal * (discountPercent / 100);
+  const newDiscountAmount = newTotal * (discount[0].persent / 100);
   const newRealTotal = newTotal + newTaxAmount + servaceCharge - newDiscountAmount;
     
      setTaxAmount(newTaxAmount);
@@ -648,7 +654,7 @@ function PreOrder() {
 
               <dl className="flex items-center justify-between gap-4">
                 <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Discount</dt>
-                <dd className="text-base font-medium text-gray-900 dark:text-white">{discountPercent} %</dd>
+                <dd className="text-base font-medium text-gray-900 dark:text-white">{discount[0].persent} %</dd>
               </dl>
 
               <dl className="flex items-center justify-between gap-4">
@@ -657,7 +663,7 @@ function PreOrder() {
               </dl>
               <dl className="flex items-center justify-between gap-4">
                 <dt className="text-base font-normal text-gray-500 dark:text-gray-400">Tax</dt>
-                <dd className="text-base font-medium text-gray-900 dark:text-white">{taxAmount} MMK</dd>
+                <dd className="text-base font-medium text-gray-900 dark:text-white">(1%) {taxAmount} MMK</dd>
               </dl>
             </div>
 

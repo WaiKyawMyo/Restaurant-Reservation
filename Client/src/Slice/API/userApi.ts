@@ -141,7 +141,13 @@ export const userApiSlite =apiSlite.injectEndpoints({
             url:"orders",
             method:"get"
         })
+    }),
+    getDiscount:build.mutation({
+        query:()=>({
+            url:"/getdiscount",
+            method:"get"
+        })
     })
     })
 })
-export  const{ useCreateOrderMutation,useCreateReservationMutation, usePreOrderMutation,useGetAllMenuMutation,useDeleteReservationMutation ,useGetMyReservationMutation,useCreaetReservationMutation,useLoginMutation,useLogoutMutation,useUserRegisterMutation,useRequestOTPMutation,useVarifyOTPMutation,useChangePWwithOTPMutation,useProfileMutation,useUpdteProMutation}= userApiSlite
+export  const{ useCreateOrderMutation, useGetDiscountMutation,useCreateReservationMutation, usePreOrderMutation,useGetAllMenuMutation,useDeleteReservationMutation ,useGetMyReservationMutation,useCreaetReservationMutation,useLoginMutation,useLogoutMutation,useUserRegisterMutation,useRequestOTPMutation,useVarifyOTPMutation,useChangePWwithOTPMutation,useProfileMutation,useUpdteProMutation}= userApiSlite

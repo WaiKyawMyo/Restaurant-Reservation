@@ -9,6 +9,7 @@ import { Menu } from "../models/Menu";
 import { Order } from "../models/Order";
 import { OrderMenu } from "../models/Order_Menu";
 import { Set } from "../models/Set";
+import { Discount } from "../models/discount";
 
 // const hasOverlap = async (table_id, start_time, end_time) => {
 //   return await Reservation.findOne({
@@ -155,7 +156,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
         table_id, 
         order_items, 
         reservation_id,
-        discountPercent = 5,
+        discountPercent ,
         service_charge = 2500
     } = req.body;
     if(!reservation_id){
@@ -333,3 +334,7 @@ export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
     
 })
 
+export const getDiscount = asyncHandler(async(req,res)=>{
+    const response = await Discount.find()
+    res.status(200).json({data:response,message:"Success get discount"})
+} )
