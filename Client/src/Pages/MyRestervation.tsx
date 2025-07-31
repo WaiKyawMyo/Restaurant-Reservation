@@ -19,8 +19,8 @@ function MyRestervation() {
   const [currentPage, setCurrentPage] = useState(1);
   const totalPage = Math.ceil(reservation.length / rowPerPage);
   const [getOrder]= usePreOrderMutation()
-
-
+  const [resData,setrespData]=useState([])
+  
 
   const handleClick = (page: number) => {
     setCurrentPage(page);
@@ -75,6 +75,10 @@ function MyRestervation() {
     setLoading(true)
     const start = async () => {
       const res = await getAll({});
+      const data = await getOrder({})
+      
+      setrespData(data.data)
+      
       console.log(res)
       if (res.error) {
         toast.error(res.error.message);
@@ -165,28 +169,36 @@ function MyRestervation() {
                         {new Date(res.end_time).toLocaleTimeString()}
                       </td>
                       <td className="p-4 border-b border-slate-200">
-                        <button
-                          onClick={() => {
-                            navigate(`/pro-order/${res.table_id._id}`,{
-                              state:{
-                                reservation_id:res._id
-                              }
-                            });
-                          }}
-                          
-                          type="button"
-                          disabled={!canCancel || over}
-                          className={`py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent
-                            ${
-                              !canCancel || over
-                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                            }
-                          `}
-                        >
-                          Pre-order
-                        </button>
-                      </td>
+  {(() => {
+    const hasOrder = resData.filter(data => data.reservation_id == res._id).length > 0;
+    const isDisabled = !canCancel || over || hasOrder;
+    
+    return (
+      <button
+        onClick={() => {
+          if (!isDisabled) {
+            navigate(`/pro-order/${res.table_id._id}`, {
+              state: {
+                reservation_id: res._id
+              }
+            });
+          }
+        }}
+        type="button"
+        disabled={isDisabled}
+        className={`py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent
+          ${
+            isDisabled
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+          }
+        `}
+      >
+        {hasOrder ? "Order Placed" : "Pre-order"}
+      </button>
+    );
+  })()}
+</td>
                       <td className="p-4 border-b border-slate-200 relative">
                         <button
                           onClick={(e) => {

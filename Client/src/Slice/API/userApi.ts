@@ -1,5 +1,5 @@
 
-import PreOrder from "../../Pages/PreOrder";
+
 import { apiSlite } from "../Api";
 interface LoginInput {
     email:string,
