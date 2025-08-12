@@ -138,9 +138,9 @@ function Header() {
                 "font-medium " +
                 (isActive ? "text-[#D32F2F] font-bold text-xl " : "font-bold text-xl text-gray-600 hover:text-gray-400")
               }
-              to="/account"
+              to="/our-menu"
             >
-              Account
+              Menu
             </NavLink>
             <NavLink
               className={({ isActive }) =>

@@ -71,7 +71,7 @@ function PreOrder() {
   const { id } = useParams<{ tableId: string }>();
   const [payment,setPayment]= useState(false)
   const [total,SetTotal]= useState(0)  
-  const discountPercent = 5
+
   const taxRate =0.1
   const servaceCharge =2500 
   const [discountAmount,setDiscountAmnout]= useState(0)
