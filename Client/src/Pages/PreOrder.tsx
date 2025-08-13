@@ -71,7 +71,7 @@ function PreOrder() {
   const { id } = useParams<{ tableId: string }>();
   const [payment,setPayment]= useState(false)
   const [total,SetTotal]= useState(0)  
-
+  const discountPercent = 5
   const taxRate =0.1
   const servaceCharge =2500 
   const [discountAmount,setDiscountAmnout]= useState(0)
@@ -145,7 +145,7 @@ function PreOrder() {
       const menuPos = menuSection.offsetTop - container.offsetTop;
 
       const threshold = containerHeight * 0.3;
-
+      
       if (scrollTop + threshold >= menuPos) {
         setActiveSection("menu");
       } else if (scrollTop + threshold >= setPos) {
@@ -273,11 +273,15 @@ function PreOrder() {
     }).filter(item => item.menu_id || item.set_id),
   };
    } else{
+    console.log(discount[0]?.persent)
     payload = {
     table_id: id,
     reservation_id:location.state.reservation_id2 ,
-    discountPercent:discount[0].persent,
-    order_items: orderItems.map(item => {
+    discountPercent: discount[0]?.persent ,
+    
+discountAmount: discountAmount ,
+total: realTotal || 0,
+        order_items: orderItems.map(item => {
       const orderItemPayload: any = { quantity: item.quantity };
       if (item.itemType === 'menu') {
         orderItemPayload.menu_id = item.itemId;
@@ -327,8 +331,9 @@ function PreOrder() {
     SetTotal(newTotal);
     setPayment(true)
      const newTaxAmount = newTotal * taxRate;
-  const newDiscountAmount = newTotal * (discount[0].persent / 100);
-  const newRealTotal = newTotal + newTaxAmount + servaceCharge - newDiscountAmount;
+  const discountPercent = discount[0]?.persent || 0;
+const newDiscountAmount = newTotal * (discountPercent / 100);
+const newRealTotal = newTotal + newTaxAmount + servaceCharge - newDiscountAmount;
     
      setTaxAmount(newTaxAmount);
   setDiscountAmnout(newDiscountAmount);

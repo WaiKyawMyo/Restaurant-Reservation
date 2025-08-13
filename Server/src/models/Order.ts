@@ -34,17 +34,17 @@ const orderSchema = new Schema({
     },
     tax_amount: {
         type: Number,
-        default: 0,
+        
         min: 0
     },
     discount_amount: {
         type: Number,
-        default: 0,
+    
         min: 0
     },
     service_charge: {
         type: Number,
-        default: 0,
+    
         min: 0
     },
 

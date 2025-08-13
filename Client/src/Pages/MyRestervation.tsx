@@ -77,19 +77,18 @@ function MyRestervation() {
       const res = await getAll({});
       const data = await getOrder({})
       
-      setrespData(data.data)
+       setrespData(Array.isArray(data.data) ? data.data : [])
       
       console.log(res)
       if (res.error) {
-        toast.error(res.error.message);
+        // Use optional chaining and provide a fallback message
+        toast.error(res.error?.data?.message || "Failed to load reservations.");
         setLoading(false)
-      }
-      if (res.data.message) {
+      } else if (res.data?.message) { // Check for the API's "no data" message
         setNoData(true);
         setLoading(false)
-      } else {
+      } else if (res.data) {
         setReservation(res.data);
-        
         setNoData(false);
         setLoading(false)
       }

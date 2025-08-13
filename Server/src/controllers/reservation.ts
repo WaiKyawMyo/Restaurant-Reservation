@@ -150,189 +150,207 @@ export const removeReservation = asyncHandler(async(req: Request, res: Response)
     res.status(200).json({ message: "Reservation deleted (no related orders found)" })
   }
 })
-
-export const createOrder = asyncHandler(async(req:AuthRequest,res:Response)=>{
+export const createOrder = asyncHandler(async(req: AuthRequest, res: Response) => {
     const { 
         table_id, 
         order_items, 
         reservation_id,
-        discountPercent ,
+        discountPercent = 0,  // Default to 0
         service_charge = 2500
     } = req.body;
-    if(!reservation_id){
-        res.status(400).json({
-            success:false,
-            message:"Reservation ID are Required"
-        })
+    
+    
+    
+    // Convert and validate numeric inputs
+    const validDiscountPercent = Number(discountPercent) || 0;
+    const validServiceCharge = Number(service_charge) || 2500;
+    
+    console.log('Validated inputs:', { validDiscountPercent, validServiceCharge });
+
+    // Validate required fields - THROW ERRORS instead of return
+    if (!reservation_id) {
+        throw new Error("Reservation ID is required");
     }
-    // Get user_id from your existing auth middleware
+
     const user_id = req.user?._id;
-
-    // Validate required fields
+    
     if (!table_id || !order_items || order_items.length === 0) {
-         res.status(400).json({
-            success: false,
-            message: "Table ID and order items are required"
-        });
+        throw new Error("Table ID and order items are required");
     }
-    if(!user_id){
-        res.status(400).json({
-            success:false,
-            message:"User ID is Required"
-        })
+    
+    if (!user_id) {
+        throw new Error("User ID is required");
     }
 
-   
+    // Validate table exists
+    const table = await Table.findById(table_id);
+    if (!table) {
+        throw new Error("Table not found");
+    }
 
-   
-        // Validate table exists
-        const table = await Table.findById(table_id)
-        if (!table) {
-            throw new Error("Table not found");
+    let subtotal = 0;
+    let orderMenuItems = [];
+
+    // Process each order item
+    for (const item of order_items) {
+        const { menu_id, quantity, set_id } = item;
+
+        // Validate quantity
+        const validQuantity = Number(quantity) || 0;
+        if (validQuantity <= 0) {
+            throw new Error("Invalid quantity");
         }
 
-        let subtotal = 0;
-        let orderMenuItems = [];
-
-        // Process each order item
-        for (const item of order_items) {
-            const { menu_id, quantity, set_id } = item;
-
-            // Validate required fields
-            if ( !quantity || quantity <= 0) {
-                throw new Error("Invalid menu item or quantity");
-            }
-
-            if(menu_id){
- // Validate menu item exists and is available
+        if (menu_id) {
+            // Validate menu item exists and is available
             const menu = await Menu.findById(menu_id);
             if (!menu) {
                 throw new Error(`Menu item with ID ${menu_id} not found`);
-            }else{
-                const itemTotal = menu.price * quantity;
-                 subtotal += itemTotal;
             }
-           }
-
             
-           if(set_id){
+            const validPrice = Number(menu.price) || 0;
+            const itemTotal = validPrice * validQuantity;
+            subtotal += itemTotal;
+            
+            console.log(`Menu item: ${menu.name}, Price: ${validPrice}, Qty: ${validQuantity}, Total: ${itemTotal}`);
+        }
+
+        if (set_id) {
             // Validate set exists and is available
-                const set = await Set.findById(set_id)
-                if (!set) {
-                 throw new Error(`Set with ID ${set_id} not found`);
-                }else{
-                    const itemTotal = Number(set.price) * quantity
-                    subtotal+= itemTotal
-                }
-
-            }
-
-            // Calculate subtotal using menu price
-            
-
-            // Prepare order menu item
-            if(menu_id){
-                orderMenuItems.push({
-                menu_id :menu_id,
-                quantity,
-                table_id
-            });
-            }else{
-                orderMenuItems.push({
-                set_id :set_id,
-                quantity,
-                
-                table_id
-            });
+            const set = await Set.findById(set_id);
+            if (!set) {
+                throw new Error(`Set with ID ${set_id} not found`);
             }
             
-        }
-        
-        // Calculate discount amount from percentage
-        const discountAmount = subtotal * (discountPercent / 100);
-        // Calculate totals
-        const tax_rate = 0.1; // 10% tax
-        const tax_amount = subtotal * tax_rate;
-        const total = subtotal + tax_amount + service_charge - discountAmount;
-        
-        // Validate total amount
-        if (total < 0) {
-            throw new Error("Total amount cannot be negative");
+            const validPrice = Number(set.price) || 0;
+            const itemTotal = validPrice * validQuantity;
+            subtotal += itemTotal;
+            
+            console.log(`Set item: ${set.name}, Price: ${validPrice}, Qty: ${validQuantity}, Total: ${itemTotal}`);
         }
 
-        // Create the main order
-        const order =await Order.create({
-            time: new Date(),
-            user_id,
-            reservation_id,
-            table_id,
-            subtotal,
-            tax_amount,
-            discount_amount : discountAmount,
-            service_charge,
-            total
-            // order_number will be generated automatically by pre-save hook
-        });
-        
-        
-
-        // Add order_id to each order menu item and create them
-        const orderMenuItemsWithOrderId = orderMenuItems.map(item => ({
-            ...item,
-            order_id: order._id
-        }));
-        
-
-        if(Array.isArray(orderMenuItemsWithOrderId)){
-            for (const item of orderMenuItemsWithOrderId){
-             const dataResponse=  await OrderMenu.create({
-                    menu_id:item.menu_id?item.menu_id: null,
-                    quantity:item.quantity,
-                    set_id:item.set_id?item.set_id: null,
-                    order_id:item.order_id,
-                    table_id:item.table_id
-                })
-            }
+        // Prepare order menu item
+        if (menu_id) {
+            orderMenuItems.push({
+                menu_id: menu_id,
+                quantity: validQuantity,
+                table_id
+            });
+        } else {
+            orderMenuItems.push({
+                set_id: set_id,
+                quantity: validQuantity,
+                table_id
+            });
         }
-        
-
-       
-
-        // Get order items with populated data
-        const orderItemsWithDetails = await OrderMenu.find({ order_id: order._id })
-            .populate('menu_id', 'name type price image is_available cloudinary_id')
-            .populate('set_id', 'name price  ')
-            .populate('table_id', 'table_No capacity ')
-            .populate('order_id');
-
-        // Populate the order
-        const populatedOrder = await Order.findById(order._id)
-            .populate('user_id', 'name email phone role')
-            .populate('table_id', 'table_No capacity ');
-
-        res.status(201).json({
-            success: true,
-            message: "Order created successfully",
-            data: {
-                order: populatedOrder,
-                order_items: orderItemsWithDetails,
-                summary: {
-                    order_id: order._id,
-                 
-                    table_number: table.table_No,
-                    total_items: orderItemsWithDetails.length,
-                    subtotal: order.subtotal,
-                    tax_amount: order.tax_amount,
-                    discount_amount: order.discount_amount,
-                    service_charge: order.service_charge,
-                    total: order.total,
-                    order_time: order.time
-                }
-            }
-        });
-
+    }
     
-})
+    // Validate subtotal
+    if (isNaN(subtotal) || subtotal < 0) {
+        throw new Error("Invalid subtotal calculated");
+    }
+    
+    console.log('Subtotal before calculations:', subtotal);
+    
+    // Calculate discount amount from percentage
+    const discountAmount = (subtotal * validDiscountPercent) / 100;
+    
+    // Calculate totals
+    const tax_rate = 0.1; // 10% tax
+    const tax_amount = subtotal * tax_rate;
+    const total = subtotal + tax_amount + validServiceCharge - discountAmount;
+    
+    // Log all calculations
+    console.log('Calculation breakdown:', {
+        subtotal,
+        discountPercent: validDiscountPercent,
+        discountAmount,
+        tax_rate,
+        tax_amount,
+        service_charge: validServiceCharge,
+        total
+    });
+    
+    // Validate all calculated values
+    if (isNaN(total) || isNaN(discountAmount) || isNaN(tax_amount)) {
+        console.error('NaN detected in calculations:', {
+            total: isNaN(total),
+            discountAmount: isNaN(discountAmount),
+            tax_amount: isNaN(tax_amount)
+        });
+        
+        throw new Error("Error in price calculations. Please check your order items.");
+    }
+    
+    // Validate total amount
+    if (total < 0) {
+        throw new Error("Total amount cannot be negative");
+    }
+
+    // Create the main order
+    const order = await Order.create({
+        time: new Date(),
+        user_id,
+        reservation_id,
+        table_id,
+        subtotal: Number(subtotal.toFixed(2)),
+        tax_amount: Number(tax_amount.toFixed(2)),
+        discount_amount: Number(discountAmount.toFixed(2)),
+        service_charge: validServiceCharge,
+        total: Number(total.toFixed(2))
+    });
+
+    // Add order_id to each order menu item and create them
+    const orderMenuItemsWithOrderId = orderMenuItems.map(item => ({
+        ...item,
+        order_id: order._id
+    }));
+
+    // Create order menu items
+    if (Array.isArray(orderMenuItemsWithOrderId)) {
+        for (const item of orderMenuItemsWithOrderId) {
+            await OrderMenu.create({
+                menu_id: item.menu_id || null,
+                quantity: item.quantity,
+                set_id: item.set_id || null,
+                order_id: item.order_id,
+                table_id: item.table_id
+            });
+        }
+    }
+
+    // Get order items with populated data
+    const orderItemsWithDetails = await OrderMenu.find({ order_id: order._id })
+        .populate('menu_id', 'name type price image is_available cloudinary_id')
+        .populate('set_id', 'name price')
+        .populate('table_id', 'table_No capacity')
+        .populate('order_id');
+
+    // Populate the order
+    const populatedOrder = await Order.findById(order._id)
+        .populate('user_id', 'name email phone role')
+        .populate('table_id', 'table_No capacity');
+
+    res.status(201).json({
+        success: true,
+        message: "Order created successfully",
+        data: {
+            order: populatedOrder,
+            order_items: orderItemsWithDetails,
+            summary: {
+                order_id: order._id,
+                table_number: table.table_No,
+                total_items: orderItemsWithDetails.length,
+                subtotal: order.subtotal,
+                tax_amount: order.tax_amount,
+                discount_amount: order.discount_amount,
+                service_charge: order.service_charge,
+                total: order.total,
+                order_time: order.time
+            }
+        }
+    });
+});
 
 export const getDiscount = asyncHandler(async(req,res)=>{
     const response = await Discount.find()
