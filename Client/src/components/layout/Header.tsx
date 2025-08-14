@@ -122,11 +122,11 @@ function Header() {
             ${mobileMenuOpen ? "block" : "hidden"}
           `}
         >
-          <div className={`flex flex-col gap-5 p-2 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5  `}>
+          <div className={`flex flex-col gap-4 p-2 mt-5 sm:flex-row sm:items-center sm:mt-0 sm:ps-5  `}>
             <NavLink
               className={({ isActive }) =>
                 "font-medium " +
-                (isActive ? "text-[#D32F2F] font-bold text-xl" : "text-gray-600 font-bold text-xl hover:text-gray-400")
+                (isActive ? "text-[#D32F2F] font-bold text-xl " : "text-gray-600 font-bold text-xl hover:text-gray-400 ")
               }
               to="/"
               end
@@ -142,14 +142,15 @@ function Header() {
             >
               Menu
             </NavLink>
+             
             <NavLink
               className={({ isActive }) =>
                 "font-medium " +
                 (isActive ? "text-[#D32F2F] font-bold text-xl" : "font-bold text-xl text-gray-600 hover:text-gray-400")
               }
-              to="/work"
+              to="/reservation"
             >
-              Work
+              Reservation
             </NavLink>
             <NavLink
               className={({ isActive }) =>

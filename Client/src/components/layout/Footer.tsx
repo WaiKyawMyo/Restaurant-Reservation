@@ -11,10 +11,9 @@ function Footer() {
                 </Link>
                     <ul className="text-lg flex items-center justify-center flex-col gap-7 md:flex-row md:gap-12 transition-all duration-500 py-16 mb-10 border-b border-gray-200">
                         <li><Link to={'/'} className="text-white hover:text-gray-300">Home</Link></li>
-                        <li><a href="#" className=" text-white hover:text-gray-300">Products</a></li>
-                        <li><a href="#" className=" text-white hover:text-gray-300">Resources</a></li>
-                        <li><a href={'/my-reservaton'} className=" text-white hover:text-gray-300">My Reservation</a></li>
-                        <li><a href="#" className=" text-white hover:text-gray-300">Support</a></li>
+                        <li><Link to={'/our-menu'}  className=" text-white hover:text-gray-300">Menu</Link></li>
+                        <li><Link to={"/reservation"} className=" text-white hover:text-gray-300">Reservation</Link></li>
+                        <li><Link to={'/my-reservaton'}  className=" text-white hover:text-gray-300">My Reservation</Link></li>
                     </ul>
                     <div className="flex space-x-10 justify-center items-center mb-14">
                         <a href="#" className="block  text-gray-900 transition-all duration-500 hover:text-indigo-600 ">

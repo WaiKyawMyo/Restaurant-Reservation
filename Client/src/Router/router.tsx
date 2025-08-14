@@ -14,6 +14,7 @@ import MyRestervation from "../Pages/MyRestervation";
 import Success from "../components/Booking/Success";
 import PreOrder from "../Pages/PreOrder";
 import Menu from "../Pages/Menu";
+import Story from "../Pages/Story";
 
 
 const router = createBrowserRouter([
@@ -40,6 +41,11 @@ const router = createBrowserRouter([
             {
                path:'/success-reserved',
                element:<Success/>
+            }
+            ,
+             {
+               path:'/story',
+               element:<Story/>
             },
              {
                path:'/pro-order/:id',
