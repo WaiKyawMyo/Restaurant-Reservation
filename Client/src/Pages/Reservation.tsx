@@ -63,14 +63,20 @@ function Reservation() {
     (t) => t.capacity >= people && t.capacity <= 7
   );
   const confirm = async () => {
-    
-    if(!people || !date || !table_id){
-      toast.info('You need to select a Table')
-    }else{
-      setStep2(true)
-    }
-    
-  };
+  const selectedSlot = watch("slot");
+  
+  if (!people) {
+    toast.info('Please select the number of people');
+  } else if (!date) {
+    toast.info('Please select a date');
+  } else if (!table_id) {
+    toast.info('Please select a table');
+  } else if (!selectedSlot) {
+    toast.info('Please select a time slot');
+  } else {
+    setStep2(true);
+  }
+};
 
   useEffect(() => {
     if (table_id && date) {
